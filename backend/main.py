@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import health
+from routers import health, upload
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="BugSense API",
     description="Explainable AI-Assisted Software Debugging System",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -23,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(upload.router)
 
 
 @app.on_event("startup")

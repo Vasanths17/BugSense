@@ -24,6 +24,7 @@ frontend/.vite/
 # Temp uploads & analysis
 uploads/
 temp/
+backend/temp_uploads/*/
 *.tmp
 *.log
 
