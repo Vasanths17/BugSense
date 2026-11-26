@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal, Dict
 
 ConfidenceLevel = Literal["Detected", "Potential"]
+SeverityLevel = Literal["Critical", "High", "Medium", "Low"]
+IssueCategory = Literal["Bug", "Security", "Code Quality"]
 
 
 class RawFinding(BaseModel):
@@ -43,6 +45,49 @@ class FileQualityMetrics(BaseModel):
 class QualityAnalysisResult(BaseModel):
     findings: List[RawFinding] = Field(default_factory=list, description="List of quality issues flagged as RawFinding")
     file_metrics: List[FileQualityMetrics] = Field(default_factory=list, description="Per-file code metrics summary")
+
+
+class ExplainedIssue(BaseModel):
+    id: str = Field(..., description="Unique generated issue ID (e.g. 'ISSUE-001')")
+    rule_id: str = Field(..., description="Original rule or check code")
+    tool: str = Field(..., description="Detection tool that raised the finding")
+    title: str = Field(..., description="Clear human-readable title of the issue")
+    category: IssueCategory = Field(..., description="Category: 'Bug', 'Security', or 'Code Quality'")
+    file_name: str = Field(..., description="Relative path of file in project")
+    line_number: Optional[int] = Field(None, description="Line number where issue is situated")
+    explanation: str = Field(..., description="Simple, beginner-friendly explanation of what was found")
+    why_it_matters: str = Field(..., description="Why the pattern or issue is problematic")
+    possible_impact: str = Field(..., description="Concrete consequences if left unresolved")
+    severity: SeverityLevel = Field(..., description="One of: 'Critical', 'High', 'Medium', 'Low'")
+    recommendation: str = Field(..., description="Actionable instructions on how to fix the issue")
+    detection_type: ConfidenceLevel = Field(..., description="'Detected' for verified vs 'Potential' for heuristics")
+    code_snippet: Optional[str] = Field(None, description="Read-only context snippet (3-5 lines around line_number)")
+
+
+class SeverityBreakdown(BaseModel):
+    critical: int = 0
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+
+
+class CategoryBreakdown(BaseModel):
+    bugs: int = 0
+    security: int = 0
+    quality: int = 0
+
+
+class AnalysisReport(BaseModel):
+    project_id: str
+    project_name: str
+    analyzed_at: str
+    total_issues: int
+    detected_count: int
+    potential_count: int
+    severity_breakdown: SeverityBreakdown
+    category_breakdown: CategoryBreakdown
+    issues: List[ExplainedIssue]
+    file_metrics: List[FileQualityMetrics] = Field(default_factory=list)
 
 
 class DetectionSummary(BaseModel):

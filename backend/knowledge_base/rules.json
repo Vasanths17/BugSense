@@ -1,0 +1,326 @@
+{
+  "AST-SYNTAX-ERROR": {
+    "title": "Syntax Error",
+    "category": "Bug",
+    "severity": "Critical",
+    "explanation": "The file contains Python syntax that cannot be parsed by the Python interpreter.",
+    "why_it_matters": "Syntax errors prevent the program from starting or being imported, causing immediate crashes.",
+    "possible_impact": "Total application failure when this module is invoked or loaded at runtime.",
+    "recommendation": "Review the indicated line for unmatched brackets, missing colons, invalid keywords, or indentation issues."
+  },
+  "AST-MUTABLE-DEFAULT": {
+    "title": "Mutable Default Argument in Function",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "A function definition uses a mutable object (such as a list, dictionary, or set) as a default parameter value.",
+    "why_it_matters": "Default arguments are evaluated once when the function is defined, not each time it is called. Any mutations persist across calls.",
+    "possible_impact": "Subsequent function calls unexpectedly share and accumulate modified state, causing non-deterministic logical bugs.",
+    "recommendation": "Set the default value to None, and initialize a new empty container inside the function body if the argument is None."
+  },
+  "AST-BARE-EXCEPT": {
+    "title": "Bare 'except:' Clause",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "An except block catches all exceptions without specifying an exception class.",
+    "why_it_matters": "A bare except catches SystemExit, KeyboardInterrupt (Ctrl+C), and memory errors in addition to standard exceptions.",
+    "possible_impact": "Prevents normal application termination, hides syntax or typo errors, and complicates debugging.",
+    "recommendation": "Specify the exact exception class you expect (e.g. `except ValueError:`) or at minimum use `except Exception:`."
+  },
+  "AST-BROAD-EXCEPTION": {
+    "title": "Catching BaseException Directly",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "An exception handler catches BaseException directly.",
+    "why_it_matters": "BaseException is the root of all exceptions including critical system signals like KeyboardInterrupt and SystemExit.",
+    "possible_impact": "Interrupts normal signal handling and prevents graceful system shutdown.",
+    "recommendation": "Catch `Exception` instead of `BaseException` to handle standard application runtime errors."
+  },
+  "AST-DUPLICATE-DICT-KEY": {
+    "title": "Duplicate Dictionary Key",
+    "category": "Bug",
+    "severity": "High",
+    "explanation": "A dictionary literal defines the same key more than once.",
+    "why_it_matters": "Python keeps only the last value assigned to duplicate keys, silently overwriting earlier values.",
+    "possible_impact": "Data loss in configuration or parameters, leading to unexpected runtime behaviour.",
+    "recommendation": "Remove or rename the duplicate key so each entry in the dictionary is distinct."
+  },
+  "AST-SELF-ASSIGNMENT": {
+    "title": "Variable Self-Assignment",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "A variable is assigned to itself (e.g., `x = x`).",
+    "why_it_matters": "Self-assignment does nothing useful and almost always indicates an incomplete edit, copy-paste mistake, or missing logic.",
+    "possible_impact": "Intended state change is never applied, causing silent algorithmic flaws.",
+    "recommendation": "Inspect what value was intended to be assigned, or remove the redundant assignment."
+  },
+  "AST-UNREACHABLE-CODE": {
+    "title": "Unreachable Dead Code",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "Statements exist immediately after a terminal control statement (return, raise, break, or continue).",
+    "why_it_matters": "The Python interpreter will never execute these statements under any circumstance.",
+    "possible_impact": "Creates confusion for maintainers and hides code that was expected to run.",
+    "recommendation": "Move the code above the return/raise statement if it must execute, or delete it entirely."
+  },
+  "RUFF-F821": {
+    "title": "Undefined Variable or Name",
+    "category": "Bug",
+    "severity": "High",
+    "explanation": "A variable or function is referenced before it has been defined or imported in this scope.",
+    "why_it_matters": "Referencing an unknown name triggers a NameError at runtime as soon as that execution path is reached.",
+    "possible_impact": "Immediate NameError crash when this function or statement is called.",
+    "recommendation": "Check for typos in the variable name, ensure it is defined before use, or add the missing import."
+  },
+  "RUFF-F401": {
+    "title": "Unused Import Statement",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "A module or symbol is imported but never referenced anywhere in the file.",
+    "why_it_matters": "Unused imports clutter the namespace, increase startup time, and can mask dependencies.",
+    "possible_impact": "Slower module import time and reduced codebase readability.",
+    "recommendation": "Remove the unused import statement or use the imported symbol."
+  },
+  "RUFF-F841": {
+    "title": "Unused Local Variable",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "A local variable is assigned a value but its value is never subsequently read or used.",
+    "why_it_matters": "Often indicates an incomplete implementation, unnecessary computation, or a typo in a subsequent reference.",
+    "possible_impact": "Wasted memory and developer confusion.",
+    "recommendation": "Use the variable, prefix it with an underscore (e.g., `_result`) if deliberately unused, or delete the assignment."
+  },
+  "RUFF-E999": {
+    "title": "Syntax Error Detected by Linter",
+    "category": "Bug",
+    "severity": "Critical",
+    "explanation": "The file failed linter syntax parsing due to invalid Python grammar.",
+    "why_it_matters": "Source code cannot be executed or compiled.",
+    "possible_impact": "Module crash on import or execution.",
+    "recommendation": "Correct the syntax error at the indicated file location."
+  },
+  "JS-CONSOLE-LOG": {
+    "title": "Leftover Console Log Statement",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "A console.log/debug statement was left in the JavaScript/TypeScript source code.",
+    "why_it_matters": "Production console statements clutter browser logs and can inadvertently leak internal state or data.",
+    "possible_impact": "Minor performance overhead and unintended visibility of debug information.",
+    "recommendation": "Remove console statements before deploying or use a proper logging framework with log levels."
+  },
+  "JS-LOOSE-EQUALITY": {
+    "title": "Loose Equality Operator (==)",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "Comparison uses loose equality (`==` or `!=`) instead of strict equality (`===` or `!==`).",
+    "why_it_matters": "JavaScript's loose equality performs implicit type coercion, leading to counter-intuitive equality results (e.g. `0 == ''` is true).",
+    "possible_impact": "Edge cases in conditional checks fail unexpectedly, causing subtle runtime bugs.",
+    "recommendation": "Replace `==` with `===` and `!=` with `!==` to ensure strict type and value matching."
+  },
+  "JS-LOOSE-INEQUALITY": {
+    "title": "Loose Inequality Operator (!=)",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "Comparison uses loose inequality (`!=`) instead of strict inequality (`!==`).",
+    "why_it_matters": "Implicit type coercion occurs prior to comparison, producing surprising evaluation results.",
+    "possible_impact": "Incorrect branch execution when comparing values of differing types.",
+    "recommendation": "Replace `!=` with `!==`."
+  },
+  "JS-VAR-USAGE": {
+    "title": "Legacy 'var' Declaration",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "Variable is declared using the legacy `var` keyword.",
+    "why_it_matters": "`var` is function-scoped and hoisted, which frequently causes scope leakage bugs in loops and blocks.",
+    "possible_impact": "Accidental variable shadowing or overwriting across block scopes.",
+    "recommendation": "Replace `var` with `const` for immutable bindings or `let` for variables that are reassigned."
+  },
+  "JS-EMPTY-CATCH": {
+    "title": "Empty Catch Block",
+    "category": "Bug",
+    "severity": "High",
+    "explanation": "A try-catch block catches an exception but the catch block contains no statements.",
+    "why_it_matters": "Exceptions are swallowed silently without logging, recovery, or alerting the user.",
+    "possible_impact": "Critical failures remain completely invisible, leaving the program in a corrupted state.",
+    "recommendation": "Log the error, rethrow it, or add graceful recovery logic inside the catch block."
+  },
+  "JS-DEBUGGER-STATEMENT": {
+    "title": "Debugger Statement in Code",
+    "category": "Bug",
+    "severity": "Medium",
+    "explanation": "A `debugger;` statement was left in the code.",
+    "why_it_matters": "If developer tools are open in a user's browser, execution pauses abruptly.",
+    "possible_impact": "Freezes user interface and breaks production user experience.",
+    "recommendation": "Remove `debugger;` statements prior to committing or deploying."
+  },
+  "JS-ALERT-STATEMENT": {
+    "title": "Blocking Alert Dialog",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "A synchronous `alert()` dialog is called.",
+    "why_it_matters": "Alert modals block the browser thread and provide poor user experience.",
+    "possible_impact": "Freezes JavaScript execution until the user manually dismisses the dialog.",
+    "recommendation": "Use non-blocking UI notifications or modals instead of native `alert()`."
+  },
+  "SEC-HARDCODED-SECRET": {
+    "title": "Hardcoded Secret or API Key",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "A sensitive credential, API key, password, or authentication token was found hardcoded in source code.",
+    "why_it_matters": "Committed credentials can be extracted by anyone with read access to the repository or binaries.",
+    "possible_impact": "Complete compromise of backend services, external APIs, or user data if repository is exposed.",
+    "recommendation": "Move secrets to external environment variables (e.g. .env) and use a secrets management service. Rotate any exposed keys immediately."
+  },
+  "SEC-AWS-CREDENTIAL": {
+    "title": "Hardcoded AWS Access Key",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "An AWS Access Key ID or Secret Key pattern was detected in the file.",
+    "why_it_matters": "AWS credentials grant access to cloud infrastructure, databases, and compute instances.",
+    "possible_impact": "Unauthorized access to cloud infrastructure, data theft, and extreme unexpected cloud billing.",
+    "recommendation": "Revoke and rotate the exposed AWS key immediately in IAM. Use IAM Roles or AWS Secrets Manager."
+  },
+  "SEC-GITHUB-TOKEN": {
+    "title": "Hardcoded GitHub Personal Access Token",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "A GitHub Personal Access Token (`ghp_...`) was found in plaintext in the codebase.",
+    "why_it_matters": "GitHub tokens can grant write and administration access to your repositories and organizations.",
+    "possible_impact": "Repository tampering, unauthorized code commits, and exposure of private source code.",
+    "recommendation": "Revoke the token immediately via GitHub Developer Settings and configure secret scanning."
+  },
+  "SEC-SQL-INJECTION": {
+    "title": "Potential SQL Injection via Dynamic String",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "A database query is constructed dynamically using an f-string or string concatenation.",
+    "why_it_matters": "Unsanitized input concatenated into SQL queries allows attackers to alter query logic.",
+    "possible_impact": "Data exfiltration, unauthorized database modifications, bypassing authentication, or database deletion.",
+    "recommendation": "Use parameterized queries (e.g., `cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))`) or an ORM."
+  },
+  "SEC-SQLI-CONCAT": {
+    "title": "SQL Query String Concatenation",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "Raw SQL query commands are concatenated with string variables.",
+    "why_it_matters": "Direct string concatenation bypasses SQL sanitization boundaries.",
+    "possible_impact": "SQL injection leading to unauthorized database access.",
+    "recommendation": "Switch to parameterized queries or prepared statements."
+  },
+  "SEC-OS-SYSTEM": {
+    "title": "Use of os.system()",
+    "category": "Security",
+    "severity": "High",
+    "explanation": "`os.system()` executes commands directly in the host shell.",
+    "why_it_matters": "Shell execution is vulnerable to command injection if input contains shell metacharacters (`;`, `&`, `|`).",
+    "possible_impact": "Arbitrary command execution on the host operating system.",
+    "recommendation": "Use `subprocess.run(['command', 'arg1'], shell=False)` with arguments passed as an explicit list."
+  },
+  "SEC-SUBPROCESS-SHELL": {
+    "title": "Subprocess with shell=True",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "A subprocess execution passes `shell=True`.",
+    "why_it_matters": "Enabling the shell parser allows an attacker to chain arbitrary shell commands.",
+    "possible_impact": "Remote code execution on the underlying host server.",
+    "recommendation": "Remove `shell=True` and pass command and arguments as a list of strings."
+  },
+  "SEC-DYNAMIC-EXEC": {
+    "title": "Dangerous Dynamic Code Execution (eval/exec)",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "The code uses `eval()` or `exec()` to dynamically execute Python code.",
+    "why_it_matters": "Evaluating untrusted strings executes arbitrary code with the permissions of the current process.",
+    "possible_impact": "Full application compromise and server takeover.",
+    "recommendation": "Avoid `eval()` and `exec()`. Use `ast.literal_eval()` for safely parsing literals, or JSON parsers for structured data."
+  },
+  "SEC-WEAK-HASH": {
+    "title": "Weak Hashing Algorithm (MD5 / SHA1)",
+    "category": "Security",
+    "severity": "High",
+    "explanation": "The code uses MD5 or SHA1 cryptographic hash functions.",
+    "why_it_matters": "MD5 and SHA1 suffer from proven collision vulnerabilities and cannot safely verify integrity or secure passwords.",
+    "possible_impact": "Collision attacks, signature forgery, and rainbow-table attacks against stored hashes.",
+    "recommendation": "Use SHA-256 or SHA-3 for general hashing, or specialized algorithms like bcrypt/argon2 for password hashing."
+  },
+  "SEC-WEAK-CIPHER": {
+    "title": "Weak or Deprecated Encryption Cipher",
+    "category": "Security",
+    "severity": "Medium",
+    "explanation": "The code references deprecated ciphers like DES, RC4, or Blowfish.",
+    "why_it_matters": "Legacy ciphers have known cryptanalytic weaknesses and small key sizes.",
+    "possible_impact": "Encrypted sensitive traffic or data can be decrypted by third parties.",
+    "recommendation": "Use AES-256-GCM or ChaCha20-Poly1305 with modern cryptographic libraries (e.g. cryptography)."
+  },
+  "SEC-DEBUG-ENABLED": {
+    "title": "Debug Mode Enabled in Configuration",
+    "category": "Security",
+    "severity": "High",
+    "explanation": "The configuration explicitly sets `DEBUG = True`.",
+    "why_it_matters": "Debug mode provides detailed stack traces, environment variables, and interactive consoles upon errors.",
+    "possible_impact": "Exposure of sensitive environment keys and database internals to public web users.",
+    "recommendation": "Set `DEBUG = False` in production, or read debug settings dynamically from an environment variable."
+  },
+  "BANDIT-B602": {
+    "title": "Subprocess Call with shell=True",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "Bandit detected a subprocess invocation with `shell=True`.",
+    "why_it_matters": "Allows shell command injection if any part of the command string is untrusted.",
+    "possible_impact": "Arbitrary command execution on the host machine.",
+    "recommendation": "Set `shell=False` and supply command arguments as an array."
+  },
+  "BANDIT-B307": {
+    "title": "Use of Blacklisted eval()",
+    "category": "Security",
+    "severity": "Critical",
+    "explanation": "Bandit detected the use of Python's built-in `eval()` function.",
+    "why_it_matters": "`eval` executes arbitrary Python code strings at runtime.",
+    "possible_impact": "Remote code execution if user input reaches the eval call.",
+    "recommendation": "Refactor to use `ast.literal_eval()` or native dictionary lookups."
+  },
+  "QUAL-HIGH-COMPLEXITY": {
+    "title": "Excessive Cyclomatic Complexity",
+    "category": "Code Quality",
+    "severity": "Medium",
+    "explanation": "A function or method contains too many branching paths (if/for/while statements).",
+    "why_it_matters": "Functions with high cyclomatic complexity (> 10) are difficult to comprehend, maintain, and thoroughly unit test.",
+    "possible_impact": "Increased defect density, untested edge cases, and high maintenance costs.",
+    "recommendation": "Refactor the function by extracting smaller helper functions or applying polymorphism."
+  },
+  "QUAL-LOW-MAINTAINABILITY": {
+    "title": "Low Maintainability Index",
+    "category": "Code Quality",
+    "severity": "Medium",
+    "explanation": "The file scored poorly on the Maintainability Index metric.",
+    "why_it_matters": "Low maintainability indicates high code volume, complex branching, and low comment density.",
+    "possible_impact": "High technical debt and increased time required to fix future bugs or add features.",
+    "recommendation": "Break the file into smaller modules and simplify complex routines."
+  },
+  "QUAL-DEEP-NESTING": {
+    "title": "Deeply Nested Control Blocks",
+    "category": "Code Quality",
+    "severity": "Medium",
+    "explanation": "Control flow is nested 5 or more levels deep.",
+    "why_it_matters": "Deep nesting strains cognitive load, making it hard to track state and conditions.",
+    "possible_impact": "Subtle logic bugs and difficult-to-maintain code.",
+    "recommendation": "Use guard clauses (`return early`), invert condition checks, or extract inner logic into helper functions."
+  },
+  "QUAL-FILE-TOO-LONG": {
+    "title": "Excessive File Length",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "The file exceeds 500 lines of code.",
+    "why_it_matters": "Very large files typically violate the Single Responsibility Principle.",
+    "possible_impact": "High risk of merge conflicts and difficulty in code navigation.",
+    "recommendation": "Separate distinct classes or concerns into individual files."
+  },
+  "QUAL-TODO-COMMENT": {
+    "title": "Unresolved TODO or FIXME Marker",
+    "category": "Code Quality",
+    "severity": "Low",
+    "explanation": "An unresolved reminder comment (TODO, FIXME, or HACK) was left in the code.",
+    "why_it_matters": "Indicates incomplete implementation or acknowledged technical debt.",
+    "possible_impact": "Known deficiencies may slip into production unnoticed.",
+    "recommendation": "Complete the required task and remove the reminder, or track it in your issue management system."
+  }
+}
