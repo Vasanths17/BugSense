@@ -17,7 +17,7 @@ const CATEGORY_COLORS = {
   "Code Quality": "#10b981", // emerald-500
 };
 
-export default function DashboardView({ report, onNavigateToIssues }) {
+export default function DashboardView({ report, onNavigateToIssues, onDownloadPdf, downloadingPdf, onResetProject }) {
   if (!report) {
     return (
       <div className="flex flex-col items-center justify-center h-96 bg-white border border-gray-200 rounded-xl p-8 text-center">
@@ -75,12 +75,38 @@ export default function DashboardView({ report, onNavigateToIssues }) {
             Static debugging results for <span className="font-semibold text-gray-700">{report.project_name}</span>
           </p>
         </div>
-        <button
-          onClick={onNavigateToIssues}
-          className="self-start sm:self-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors flex items-center gap-2"
-        >
-          🔍 View All Issues ({total_issues})
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={onDownloadPdf}
+            disabled={downloadingPdf}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-medium text-sm rounded-lg shadow-sm transition-colors flex items-center gap-2"
+          >
+            {downloadingPdf ? (
+              <>
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+                Generating PDF...
+              </>
+            ) : (
+              <>📥 Download PDF Report</>
+            )}
+          </button>
+          <button
+            onClick={onNavigateToIssues}
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors flex items-center gap-2"
+          >
+            🔍 View All Issues ({total_issues})
+          </button>
+          <button
+            onClick={onResetProject}
+            className="px-3 py-2 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 font-medium text-sm rounded-lg border border-slate-200 transition-colors"
+            title="Clear current scan and upload a new project"
+          >
+            🔄 New Scan
+          </button>
+        </div>
       </div>
 
       {/* Health Score & High Level Overview Grid */}

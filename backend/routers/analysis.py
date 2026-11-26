@@ -10,20 +10,26 @@ POST /api/analyze/{project_id} – runs full multi-engine analysis pipeline:
   6. Caches and persists report in memory/disk for project_id
 
 GET  /api/analyze/{project_id} and GET /api/analysis/{project_id} – retrieves cached report
+GET  /api/report/{project_id}/pdf – generates and streams downloadable PDF report
+DELETE /api/project/{project_id} – removes extracted project directory and clears caches
 """
 
 import json
 import logging
+import shutil
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
+from fastapi.responses import StreamingResponse
 
 from models.finding import AnalysisReport
 from services.bug_detector import detect_bugs_in_project
 from services.explainer import compute_breakdowns, explain_all_findings
 from services.health_score import calculate_health_score
+from services.pdf_generator import generate_pdf_report
 from services.quality_analyzer import analyze_project_quality
 from services.security_scanner import scan_security_in_project
 from services.upload_service import TEMP_UPLOADS_ROOT
@@ -35,6 +41,26 @@ router = APIRouter()
 ANALYSIS_CACHE: Dict[str, AnalysisReport] = {}
 
 
+def cleanup_stale_temp_uploads(max_age_seconds: int = 3600):
+    """
+    Cleans up temp directories older than max_age_seconds (default 1 hour).
+    """
+    now = time.time()
+    if not TEMP_UPLOADS_ROOT.exists():
+        return
+
+    for item in TEMP_UPLOADS_ROOT.iterdir():
+        if item.is_dir() and item.name != ".gitkeep":
+            try:
+                mtime = item.stat().st_mtime
+                if (now - mtime) > max_age_seconds:
+                    logger.info(f"Removing stale temporary directory: {item.name}")
+                    shutil.rmtree(item, ignore_errors=True)
+                    ANALYSIS_CACHE.pop(item.name, None)
+            except Exception as e:
+                logger.debug(f"Error checking/cleaning directory {item}: {e}")
+
+
 @router.post("/api/analyze/{project_id}", response_model=AnalysisReport)
 async def run_project_analysis(project_id: str):
     """
@@ -44,6 +70,9 @@ async def run_project_analysis(project_id: str):
     - Computes metrics and severity rankings
     - Computes normalized Health Score (0-100)
     """
+    # Run automatic periodic cleanup of stale uploads
+    cleanup_stale_temp_uploads()
+
     project_dir = (TEMP_UPLOADS_ROOT / project_id).resolve()
 
     if not project_dir.exists() or not project_dir.is_dir():
@@ -156,3 +185,67 @@ async def get_project_analysis(project_id: str):
         status_code=404,
         detail=f"Analysis report for project '{project_id}' not found. Run analysis first."
     )
+
+
+@router.get("/api/report/{project_id}/pdf")
+async def download_pdf_report(project_id: str):
+    """
+    Generates and streams a downloadable, professional PDF report for project_id.
+    """
+    # 1. Retrieve the analysis report
+    report = None
+    if project_id in ANALYSIS_CACHE:
+        report = ANALYSIS_CACHE[project_id]
+    else:
+        project_dir = (TEMP_UPLOADS_ROOT / project_id).resolve()
+        report_file = project_dir / "analysis_report.json"
+        if report_file.exists():
+            try:
+                data = json.loads(report_file.read_text(encoding="utf-8"))
+                report = AnalysisReport(**data)
+                ANALYSIS_CACHE[project_id] = report
+            except Exception as e:
+                logger.error(f"Failed loading report: {e}")
+
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Analysis report for project '{project_id}' not found. Please run analysis first."
+        )
+
+    # 2. Generate PDF bytes
+    try:
+        pdf_bytes = generate_pdf_report(report)
+    except Exception as e:
+        logger.exception("PDF generation error")
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF report: {e}")
+
+    filename = f"BugSense_Report_{report.project_name}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
+@router.delete("/api/project/{project_id}")
+async def delete_project(project_id: str):
+    """
+    Removes the temporary extracted project directory and invalidates cached reports.
+    """
+    ANALYSIS_CACHE.pop(project_id, None)
+
+    project_dir = (TEMP_UPLOADS_ROOT / project_id).resolve()
+    if project_dir.exists() and project_dir.is_dir():
+        try:
+            shutil.rmtree(project_dir, ignore_errors=True)
+            logger.info(f"Successfully deleted project directory: {project_id}")
+            return {"status": "ok", "message": f"Project '{project_id}' deleted successfully."}
+        except Exception as e:
+            logger.error(f"Error removing project directory {project_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Could not delete project directory: {e}")
+
+    return {"status": "ok", "message": f"Project '{project_id}' was not present on disk."}

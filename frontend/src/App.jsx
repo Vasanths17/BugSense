@@ -53,43 +53,78 @@ function HealthBadge() {
   );
 }
 
-// ── Reports Placeholder View ─────────────────────────────────────────────────
-function ReportsView({ report }) {
+// ── Reports View ─────────────────────────────────────────────────────────────
+function ReportsView({ report, onDownloadPdf, downloadingPdf, onResetProject }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
-        <p className="text-gray-500 mt-1">Generate and export audit and compliance reports</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Reports & Compliance</h2>
+          <p className="text-gray-500 mt-1">Download formal PDF audits and structured JSON data</p>
+        </div>
+        {report && (
+          <button
+            onClick={onResetProject}
+            className="self-start sm:self-auto px-3.5 py-2 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-700 text-sm font-medium rounded-lg border border-slate-200 transition-colors"
+          >
+            🔄 New Scan / Clear
+          </button>
+        )}
       </div>
-      <div className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center gap-5">
+
+      <div className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center gap-6 shadow-sm">
         <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-2xl">
           📄
         </div>
-        <div className="text-center">
-          <p className="font-semibold text-gray-700">
-            {report ? `Report ready for ${report.project_name}` : "No reports generated yet"}
+
+        <div className="text-center max-w-lg">
+          <p className="font-bold text-lg text-gray-800">
+            {report ? `Audit Report for ${report.project_name}` : "No Project Analyzed"}
           </p>
-          <p className="text-sm text-gray-400 mt-1">
-            {report ? `Total issues: ${report.total_issues} · Health Score: ${report.health_score?.score ?? 100}/100` : "Run an analysis first to generate a structured report"}
+          <p className="text-sm text-gray-500 mt-1">
+            {report
+              ? `Health Score: ${report.health_score?.score ?? 100}/100 (Grade ${report.health_score?.grade ?? 'A'}) · ${report.total_issues} detected issues across ${report.file_metrics?.length || 0} files.`
+              : "Upload and analyze your project repository to generate official static analysis reports."}
           </p>
         </div>
-        <button
-          onClick={() => {
-            if (!report) return;
-            const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${report.project_name}_analysis_report.json`;
-            a.click();
-          }}
-          disabled={!report}
-          className={`px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm ${
-            report ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer" : "bg-blue-600 text-white opacity-40 cursor-not-allowed"
-          }`}
-        >
-          Export JSON Report
-        </button>
+
+        {report && (
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {/* Download PDF button */}
+            <button
+              onClick={onDownloadPdf}
+              disabled={downloadingPdf}
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              {downloadingPdf ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Generating PDF...
+                </>
+              ) : (
+                <>📥 Download PDF Report</>
+              )}
+            </button>
+
+            {/* Export JSON */}
+            <button
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `BugSense_Report_${report.project_name}.json`;
+                a.click();
+              }}
+              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
+            >
+              Export JSON
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -103,6 +138,7 @@ export default function App() {
   const [report, setReport]             = useState(null);
   const [analyzing, setAnalyzing]       = useState(false);
   const [analysisStep, setAnalysisStep] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const handleRunAnalysis = async () => {
     if (!project) return;
@@ -127,6 +163,49 @@ export default function App() {
       setAnalyzing(false);
       setAnalysisStep("");
     }
+  };
+
+  const handleDownloadPdf = async () => {
+    const projId = project?.project_id || report?.project_id;
+    if (!projId) return;
+
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/report/${projId}/pdf`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to download PDF report.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `BugSense_Report_${report?.project_name || "Project"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(`Could not download PDF: ${err.message}`);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleResetProject = async () => {
+    const projId = project?.project_id || report?.project_id;
+    if (projId) {
+      try {
+        await fetch(`${API_BASE}/api/project/${projId}`, { method: "DELETE" });
+      } catch (err) {
+        console.error("Cleanup error:", err);
+      }
+    }
+    setProject(null);
+    setSelectedFile(null);
+    setReport(null);
+    setActiveId("upload");
   };
 
   return (
@@ -181,6 +260,19 @@ export default function App() {
               );
             })}
           </nav>
+
+          {/* New Scan button in sidebar if project loaded */}
+          {project && (
+            <div className="p-3 border-t border-slate-700">
+              <button
+                onClick={handleResetProject}
+                className="w-full text-xs text-slate-400 hover:text-red-400 py-2 rounded border border-slate-700 hover:border-red-500/40 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>🔄</span> New Scan / Reset
+              </button>
+            </div>
+          )}
+
           <div className="px-4 py-4 border-t border-slate-700 text-xs text-slate-500 text-center">
             BugSense v0.4.0
           </div>
@@ -206,7 +298,7 @@ export default function App() {
                         📂 {project.project_name}
                       </h3>
                       <button
-                        onClick={() => { setProject(null); setSelectedFile(null); setReport(null); }}
+                        onClick={handleResetProject}
                         className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
                         title="Upload another project"
                       >
@@ -289,6 +381,9 @@ export default function App() {
             <DashboardView
               report={report}
               onNavigateToIssues={() => setActiveId("issues")}
+              onDownloadPdf={handleDownloadPdf}
+              downloadingPdf={downloadingPdf}
+              onResetProject={handleResetProject}
             />
           )}
 
@@ -297,7 +392,12 @@ export default function App() {
           )}
 
           {activeId === "reports" && (
-            <ReportsView report={report} />
+            <ReportsView
+              report={report}
+              onDownloadPdf={handleDownloadPdf}
+              downloadingPdf={downloadingPdf}
+              onResetProject={handleResetProject}
+            />
           )}
         </main>
       </div>
