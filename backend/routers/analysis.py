@@ -6,9 +6,10 @@ POST /api/analyze/{project_id} – runs full multi-engine analysis pipeline:
   2. Security Vulnerability Scanning (Bandit, Secret/Injection patterns)
   3. Code Quality Analysis (Radon metrics, Complexity, Maintainability)
   4. Local Explainability Engine (Knowledge base translation + 9 required fields)
-  5. Caches and persists report in memory/disk for project_id
+  5. Health Score Calculation (0-100 score, letter grade, breakdown)
+  6. Caches and persists report in memory/disk for project_id
 
-GET  /api/analyze/{project_id} – retrieves cached analysis report
+GET  /api/analyze/{project_id} and GET /api/analysis/{project_id} – retrieves cached report
 """
 
 import json
@@ -22,6 +23,7 @@ from fastapi import APIRouter, HTTPException
 from models.finding import AnalysisReport
 from services.bug_detector import detect_bugs_in_project
 from services.explainer import compute_breakdowns, explain_all_findings
+from services.health_score import calculate_health_score
 from services.quality_analyzer import analyze_project_quality
 from services.security_scanner import scan_security_in_project
 from services.upload_service import TEMP_UPLOADS_ROOT
@@ -40,6 +42,7 @@ async def run_project_analysis(project_id: str):
     - Zero execution of user code
     - Offline explainability generation via local rules.json
     - Computes metrics and severity rankings
+    - Computes normalized Health Score (0-100)
     """
     project_dir = (TEMP_UPLOADS_ROOT / project_id).resolve()
 
@@ -94,7 +97,9 @@ async def run_project_analysis(project_id: str):
     detected_count = sum(1 for i in explained_issues if i.detection_type == "Detected")
     potential_count = sum(1 for i in explained_issues if i.detection_type == "Potential")
 
-    # Read project name if metadata exists or default to directory name
+    # 7. Calculate Project Health Score (Feature 7)
+    health_score_details = calculate_health_score(sev_breakdown, file_metrics)
+
     project_name = project_dir.name
 
     report = AnalysisReport(
@@ -106,6 +111,7 @@ async def run_project_analysis(project_id: str):
         potential_count=potential_count,
         severity_breakdown=sev_breakdown,
         category_breakdown=cat_breakdown,
+        health_score=health_score_details,
         issues=explained_issues,
         file_metrics=file_metrics,
     )
@@ -120,14 +126,16 @@ async def run_project_analysis(project_id: str):
     except Exception as e:
         logger.warning(f"Could not persist analysis_report.json to disk: {e}")
 
-    logger.info(f"Analysis complete for {project_id}: {len(explained_issues)} issues found.")
+    logger.info(f"Analysis complete for {project_id}: {len(explained_issues)} issues found. Health Score: {health_score_details.score}/100 ({health_score_details.grade})")
     return report
 
 
 @router.get("/api/analyze/{project_id}", response_model=AnalysisReport)
+@router.get("/api/analysis/{project_id}", response_model=AnalysisReport)
 async def get_project_analysis(project_id: str):
     """
     Retrieves the generated analysis report for a given project.
+    Accessible at both /api/analyze/{project_id} and /api/analysis/{project_id}.
     """
     if project_id in ANALYSIS_CACHE:
         return ANALYSIS_CACHE[project_id]

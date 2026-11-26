@@ -77,6 +77,16 @@ class CategoryBreakdown(BaseModel):
     quality: int = 0
 
 
+class HealthScoreDetails(BaseModel):
+    score: int = Field(..., description="Project Health Score between 0 and 100")
+    grade: str = Field(..., description="Letter grade: A, B, C, D, or F")
+    status: str = Field(..., description="Health status label")
+    defect_density_score: float = Field(..., description="Score based on weighted issues per 1,000 LOC (0-100)")
+    quality_score: float = Field(..., description="Average maintainability/quality score (0-100)")
+    total_loc: int = Field(..., description="Total lines of code scanned")
+    explanation: str = Field(..., description="Brief breakdown of how score was determined")
+
+
 class AnalysisReport(BaseModel):
     project_id: str
     project_name: str
@@ -86,6 +96,7 @@ class AnalysisReport(BaseModel):
     potential_count: int
     severity_breakdown: SeverityBreakdown
     category_breakdown: CategoryBreakdown
+    health_score: Optional[HealthScoreDetails] = None
     issues: List[ExplainedIssue]
     file_metrics: List[FileQualityMetrics] = Field(default_factory=list)
 
